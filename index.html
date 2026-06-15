@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>คำนวณการเรียงฟิล์ม UV DTF</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Sarabun:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #FFF8F5;
+    --surface: #FFFFFF;
+    --pink: #FF6B9D;
+    --pink-light: #FFD6E7;
+    --teal: #00C9A7;
+    --teal-light: #B2F0E8;
+    --yellow: #FFD166;
+    --purple: #9B5DE5;
+    --coral: #FF8C69;
+    --text: #2D2D2D;
+    --muted: #8A8A8A;
+    --border: #F0E8E4;
+    --shadow: 0 4px 20px rgba(255,107,157,0.12);
+    --shadow-card: 0 2px 12px rgba(0,0,0,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: 'Sarabun', sans-serif; color: var(--text); min-height: 100vh; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #FF6B9D 0%, #c44dff 100%);
+    padding: 2rem 1.5rem 3rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+  }
+  .header-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+    font-size: 11px;
+    font-family: 'Kanit', sans-serif;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255,255,255,0.4);
+  }
+  .header h1 {
+    font-family: 'Kanit', sans-serif;
+    font-size: 2rem;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.2;
+    position: relative;
+  }
+  .header p {
+    color: rgba(255,255,255,0.85);
+    font-size: 14px;
+    margin-top: 6px;
+    position: relative;
+  }
+  .header-deco {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .deco1 { width: 120px; height: 120px; top: -40px; right: -20px; }
+  .deco2 { width: 80px; height: 80px; bottom: 10px; left: 10px; }
+  .deco3 { width: 50px; height: 50px; top: 20px; left: 30%; }
+
+  /* Main */
+  .main { max-width: 640px; margin: 0 auto; padding: 0 1rem 2rem; }
+
+  /* Input card */
+  .input-card {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 1.5rem;
+    margin-top: -1.5rem;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .input-card-title {
+    font-family: 'Kanit', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--pink);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .input-card-title::before { content: '✦'; font-size: 10px; }
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .input-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  .input-wrap {
+    position: relative;
+  }
+  .input-wrap input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 40px 10px 14px;
+    font-size: 18px;
+    font-family: 'Kanit', sans-serif;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  .input-wrap input::-webkit-outer-spin-button,
+  .input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .input-wrap input:focus { border-color: var(--pink); background: #fff; }
+  .input-wrap .unit {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 11px; color: var(--muted);
+  }
+  .swap-btn {
+    display: flex; align-items: center; justify-content: center;
+    position: absolute; left: 50%; transform: translateX(-50%);
+    bottom: -18px;
+    width: 36px; height: 36px;
+    background: var(--pink);
+    border-radius: 50%;
+    border: 3px solid var(--bg);
+    cursor: pointer;
+    color: #fff; font-size: 14px;
+    box-shadow: 0 2px 8px rgba(255,107,157,0.35);
+    transition: transform 0.2s, background 0.2s;
+    user-select: none;
+  }
+  .swap-btn:hover { background: var(--purple); transform: translateX(-50%) rotate(180deg); }
+
+  /* Section title */
+  .section-title {
+    font-family: 'Kanit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 2rem 0 0.9rem;
+  }
+
+  /* Film cards */
+  .film-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .film-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+    position: relative;
+    overflow: hidden;
+  }
+  .film-card::after {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    opacity: 0.08;
+    transition: opacity 0.2s;
+  }
+  .film-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+  .film-card.active { border-color: var(--film-color, var(--pink)); box-shadow: 0 4px 16px rgba(255,107,157,0.2); }
+  .film-card.active::after { opacity: 0.12; }
+  .film-chip {
+    display: inline-flex; align-items: center;
+    background: var(--film-bg, #FFD6E7);
+    color: var(--film-color, var(--pink));
+    font-size: 11px; font-weight: 600;
+    font-family: 'Kanit', sans-serif;
+    padding: 2px 10px; border-radius: 999px;
+    margin-bottom: 8px;
+  }
+  .film-dim { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .film-count {
+    font-family: 'Kanit', sans-serif;
+    font-size: 32px; font-weight: 600;
+    color: var(--film-color, var(--pink));
+    line-height: 1;
+  }
+  .film-unit { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .film-breakdown { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+  /* Preview */
+  .preview-card {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 1.25rem;
+    box-shadow: var(--shadow-card);
+    margin-top: 0;
+  }
+  .preview-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .preview-header-title {
+    font-family: 'Kanit', sans-serif;
+    font-size: 14px; font-weight: 500; color: var(--text);
+  }
+  .preview-tab-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .preview-tab {
+    font-size: 11px; padding: 3px 10px; border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: transparent; cursor: pointer; color: var(--muted);
+    font-family: 'Kanit', sans-serif; font-weight: 500;
+    transition: all 0.15s;
+  }
+  .preview-tab.active {
+    background: var(--film-color, var(--pink));
+    border-color: var(--film-color, var(--pink));
+    color: #fff;
+  }
+  .canvas-wrap { position: relative; }
+  canvas {
+    display: block; max-width: 100%; border-radius: 12px;
+    border: 1.5px solid var(--border);
+  }
+  .legend { display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  .info-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--teal-light);
+    color: #007A64;
+    font-size: 11px; font-family: 'Kanit', sans-serif; font-weight: 500;
+    padding: 4px 12px; border-radius: 999px; margin-top: 10px;
+  }
+
+  .footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 2rem; padding-bottom: 2rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-deco deco1"></div>
+  <div class="header-deco deco2"></div>
+  <div class="header-deco deco3"></div>
+  <div class="header-badge">321 Print Screen</div>
+  <h1>🎀 คำนวณฟิล์ม UV DTF</h1>
+  <p>เรียงชิ้นงานอัตโนมัติ ใช้พื้นที่คุ้มสุดๆ</p>
+</div>
+
+<div class="main">
+  <div class="input-card">
+    <div class="input-card-title">ขนาดชิ้นงานของคุณ</div>
+    <div class="input-row">
+      <div class="input-group">
+        <label>ความกว้าง(ยาว)</label>
+        <div class="input-wrap">
+          <input type="number" id="pw" value="5" min="0.1" step="0.1"/>
+          <span class="unit">ซม.</span>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>ความสูง</label>
+        <div class="input-wrap">
+          <input type="number" id="ph" value="10" min="0.1" step="0.1"/>
+          <span class="unit">ซม.</span>
+        </div>
+      </div>
+    </div>
+    <div class="swap-btn" id="swapBtn" title="สลับกว้าง-ยาว">⇄</div>
+  </div>
+
+  <div class="section-title">เลือกดูขนาดฟิล์ม</div>
+  <div class="film-grid" id="filmGrid"></div>
+
+  <div class="section-title" style="margin-top:1.5rem;">ตัวอย่างการเรียง</div>
+  <div class="preview-card">
+    <div class="preview-header">
+      <div class="preview-header-title" id="previewTitle">A4</div>
+      <div class="preview-tab-row" id="tabs"></div>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="previewCanvas"></canvas>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" id="dot1"></div><span id="leg1">ชิ้นงานแนวตั้ง</span></div>
+      <div class="legend-item"><div class="legend-dot" id="dot2"></div><span id="leg2">ชิ้นงานหมุน 90°</span></div>
+    </div>
+    <div id="infoPill" class="info-pill" style="display:none;">✦ <span id="infoText"></span></div>
+  </div>
+
+  <div class="footer">สูตรคำนวณ: ระยะห่างระหว่างชิ้น 0.6 ซม. · วางชิดขอบได้ · รองรับการหมุน 90°</div>
+</div>
+
+<script>
+const FILMS = [
+  { name:'A4',     w:20,   h:28.5, color:'#FF6B9D', bg:'#FFD6E7', color2:'#FFB3D1' },
+  { name:'A3',     w:28.5, h:41,   color:'#9B5DE5', bg:'#E8D6FF', color2:'#C89AFF' },
+  { name:'58×50',  w:58,   h:50,   color:'#F4A623', bg:'#FFF0CC', color2:'#FFD166' },
+  { name:'58×100', w:58,   h:100,  color:'#00C9A7', bg:'#B2F0E8', color2:'#5DCCC0' },
+];
+const GAP = 0.6;
+let activeFilm = 0;
+
+function layoutMixed(FW, FH, PW, PH) {
+  const candidates = [];
+  for (const [pW,pH,sW,sH] of [[PW,PH,PH,PW],[PH,PW,PW,PH]]) {
+    const pCols = Math.floor((FW+GAP)/(pW+GAP));
+    const pRows = Math.floor((FH+GAP)/(pH+GAP));
+    if (pCols>0 && pRows>0) {
+      const usedH = pRows*(pH+GAP)-GAP;
+      const remH  = FH-usedH-GAP;
+      const sCols = Math.floor((FW+GAP)/(sW+GAP));
+      const sRows = remH>=sH ? Math.floor((remH+GAP)/(sH+GAP)) : 0;
+      candidates.push({ total:pCols*pRows+sCols*sRows, pCols,pRows,pW,pH,sW,sH,sCols,sRows,usedH,axis:'H' });
+    }
+    const pRowsC = Math.floor((FH+GAP)/(pH+GAP));
+    const pColsC = Math.floor((FW+GAP)/(pW+GAP));
+    if (pRowsC>0 && pColsC>0) {
+      const usedW = pColsC*(pW+GAP)-GAP;
+      const remW  = FW-usedW-GAP;
+      const sRowsC= Math.floor((FH+GAP)/(sH+GAP));
+      const sColsC= remW>=sW ? Math.floor((remW+GAP)/(sW+GAP)) : 0;
+      candidates.push({ total:pColsC*pRowsC+sColsC*sRowsC, pCols:pColsC,pRows:pRowsC,pW,pH,sW,sH,sCols:sColsC,sRows:sRowsC,usedH:-usedW,axis:'V' });
+    }
+  }
+  return candidates.reduce((a,b)=>b.total>a.total?b:a,{total:0,pCols:0,pRows:0,pW:PW,pH:PH,sW:PH,sH:PW,sCols:0,sRows:0,usedH:0,axis:'H'});
+}
+
+function buildCards(pw, ph) {
+  const g = document.getElementById('filmGrid');
+  g.innerHTML = '';
+  FILMS.forEach((f,i) => {
+    const lay = layoutMixed(f.w,f.h,pw,ph);
+    const card = document.createElement('div');
+    card.className = 'film-card'+(i===activeFilm?' active':'');
+    card.style.setProperty('--film-color', f.color);
+    card.style.setProperty('--film-bg', f.bg);
+    card.innerHTML = `
+      <div class="film-chip">${f.name}</div>
+      <div class="film-dim">${f.w} × ${f.h} ซม.</div>
+      <div class="film-count">${lay.total}</div>
+      <div class="film-unit">ชิ้น</div>
+      ${lay.sRows>0?`<div class="film-breakdown">${lay.pCols*lay.pRows} + ${lay.sCols*lay.sRows} ชิ้น</div>`:''}
+    `;
+    card.style.setProperty('--film-color',f.color);
+    const circle = document.createElement('style');
+    card.onclick = () => { activeFilm=i; update(); };
+    g.appendChild(card);
+  });
+}
+
+function buildTabs(pw,ph) {
+  const row = document.getElementById('tabs');
+  row.innerHTML = '';
+  FILMS.forEach((f,i)=>{
+    const lay = layoutMixed(f.w,f.h,pw,ph);
+    const t = document.createElement('button');
+    t.className='preview-tab'+(i===activeFilm?' active':'');
+    t.style.setProperty('--film-color',f.color);
+    t.textContent=`${f.name} (${lay.total})`;
+    t.onclick=()=>{ activeFilm=i; update(); };
+    row.appendChild(t);
+  });
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) { ctx.roundRect(x,y,w,h,r); }
+  else {
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+  }
+}
+
+function drawPiece(ctx, x, y, bw, bh, color, label) {
+  ctx.fillStyle = color;
+  roundRect(ctx,x,y,bw,bh,Math.min(4,bw*0.1,bh*0.1));
+  ctx.fill();
+  if (bw>22 && bh>13) {
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = `${Math.min(10, bh*0.2, bw*0.35)}px 'Kanit', sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(label, x+bw/2, y+bh/2);
+  }
+}
+
+function drawPreview(pw,ph) {
+  const film = FILMS[activeFilm];
+  const lay  = layoutMixed(film.w,film.h,pw,ph);
+  const canvas = document.getElementById('previewCanvas');
+  const maxW = Math.min(canvas.parentElement.clientWidth-2, 560);
+  const scale = Math.min(maxW/film.w, 380/film.h, 12);
+  canvas.width  = Math.round(film.w*scale);
+  canvas.height = Math.round(film.h*scale);
+  const ctx = canvas.getContext('2d');
+
+  // Background — soft checkerboard feel
+  ctx.fillStyle = '#FAF6F4';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Grid dots
+  ctx.fillStyle = 'rgba(0,0,0,0.04)';
+  const dotStep = Math.max(10, Math.round(scale));
+  for(let x=0;x<canvas.width;x+=dotStep) for(let y=0;y<canvas.height;y+=dotStep) {
+    ctx.beginPath(); ctx.arc(x,y,0.8,0,Math.PI*2); ctx.fill();
+  }
+
+  if (lay.axis==='H') {
+    // Primary rows (top)
+    for(let r=0;r<lay.pRows;r++) for(let c=0;c<lay.pCols;c++) {
+      drawPiece(ctx, c*(lay.pW+GAP)*scale, r*(lay.pH+GAP)*scale, lay.pW*scale, lay.pH*scale, film.color, `${lay.pW}×${lay.pH}`);
+    }
+    // Secondary rows (bottom remainder)
+    const secY = (lay.usedH+GAP)*scale;
+    for(let r=0;r<lay.sRows;r++) for(let c=0;c<lay.sCols;c++) {
+      drawPiece(ctx, c*(lay.sW+GAP)*scale, secY+r*(lay.sH+GAP)*scale, lay.sW*scale, lay.sH*scale, film.color2, `${lay.sW}×${lay.sH}`);
+    }
+  } else {
+    const usedW = -lay.usedH;
+    for(let r=0;r<lay.pRows;r++) for(let c=0;c<lay.pCols;c++) {
+      drawPiece(ctx, c*(lay.pW+GAP)*scale, r*(lay.pH+GAP)*scale, lay.pW*scale, lay.pH*scale, film.color, `${lay.pW}×${lay.pH}`);
+    }
+    const secX=(usedW+GAP)*scale;
+    for(let r=0;r<lay.sRows;r++) for(let c=0;c<lay.sCols;c++) {
+      drawPiece(ctx, secX+c*(lay.sW+GAP)*scale, r*(lay.sH+GAP)*scale, lay.sW*scale, lay.sH*scale, film.color2, `${lay.sW}×${lay.sH}`);
+    }
+  }
+
+  // Film border with rounded corners
+  ctx.strokeStyle = film.color;
+  ctx.lineWidth = 2.5;
+  roundRect(ctx,1,1,canvas.width-2,canvas.height-2,8);
+  ctx.stroke();
+
+  // Legend dots
+  document.getElementById('dot1').style.background = film.color;
+  document.getElementById('dot2').style.background = film.color2;
+  const pRotated = !(lay.pW===pw&&lay.pH===ph);
+  const sRotated = !(lay.sW===pw&&lay.sH===ph);
+  document.getElementById('leg1').textContent = pRotated ? 'ชิ้นงานหมุน 90°' : 'ชิ้นงานแนวตั้ง';
+  document.getElementById('leg2').textContent = sRotated ? 'ชิ้นงานหมุน 90°' : 'ชิ้นงานแนวตั้ง';
+  document.getElementById('leg2').parentElement.style.display = lay.sRows>0?'flex':'none';
+
+  // Info pill
+  const pill = document.getElementById('infoPill');
+  if (lay.sRows>0) {
+    pill.style.display='inline-flex';
+    document.getElementById('infoText').textContent=
+      `โซน 1: ${lay.pCols*lay.pRows} ชิ้น  +  โซน 2: ${lay.sCols*lay.sRows} ชิ้น  =  รวม ${lay.total} ชิ้น`;
+  } else {
+    pill.style.display='none';
+  }
+
+  document.getElementById('previewTitle').textContent = film.name;
+}
+
+function update() {
+  const pw=parseFloat(document.getElementById('pw').value)||0;
+  const ph=parseFloat(document.getElementById('ph').value)||0;
+  if(pw<=0||ph<=0) return;
+  buildCards(pw,ph);
+  buildTabs(pw,ph);
+  drawPreview(pw,ph);
+}
+
+document.getElementById('pw').addEventListener('input',update);
+document.getElementById('ph').addEventListener('input',update);
+document.getElementById('swapBtn').addEventListener('click',()=>{
+  const pw=document.getElementById('pw');
+  const ph=document.getElementById('ph');
+  [pw.value,ph.value]=[ph.value,pw.value];
+  update();
+});
+
+update();
+</script>
+</body>
+</html>
